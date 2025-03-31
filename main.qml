@@ -50,7 +50,7 @@
 
 import QtQuick 2.0
 import QtQuick.Window 2.0
-import QtWebEngine 1.0
+import QtWebEngine 1.10
 
 Window {
     width: 1024
@@ -59,7 +59,65 @@ Window {
     WebEngineView {
         anchors.fill: parent
 
+        // Use the profile set up in C++
+        profile: myProfile;
+
         // Found this website here: https://stackoverflow.com/questions/56798331/are-there-any-public-web-services-that-will-check-for-an-mtls-cert-and-response
         url: "https://certauth.cryptomix.com/json/"
+
+        // Log loading status - helps to verify we can see console output, so lack of onSelectClientCertificate
+        // logging indicates that method is never called.
+        onLoadingChanged: function(loadRequest) {
+            let url = loadRequest.url;
+
+            var status = "UNKNOWN";
+            switch (loadRequest.status) {
+            case WebEngineView.LoadStartedStatus:
+                status = "started";
+                break;
+            case WebEngineView.LoadStoppedStatus:
+                status = "stopped";
+                break;
+            case WebEngineView.LoadSucceededStatus:
+                status = "succeeded";
+                break;
+            case WebEngineView.LoadFailedStatus:
+                status = "failed";
+                break;
+            }
+
+            // Log profile name to verify we're using the expected profile
+            let profileName = profile.objectName;
+            console.log("onLoadingChanged() w/" + profileName + " Loading " + status + ": " + url);
+        }
+
+        onSelectClientCertificate: function(selection) {
+            console.log("onSelectClientCertificate() ENTER");
+
+            // log all certs we could choose
+            console.log("onSelectClientCertificate() available certs: " + selection.certificates.length);
+            for (var i = 0; i < selection.certificates.length; i++)
+            {
+                var prefix = "onSelectClientCertificate() certs[" + i + "]";
+                var cert = selection.certificates[i];
+                console.log(prefix + ".issuer: " + cert.issuer);
+                console.log(prefix + ".subject: " + cert.subject);
+                console.log(prefix + ".isSelfSigned: " + cert.isSelfSigned);
+            }
+
+            // pick the first one, if possible
+            if (selection.certificates.length > 0)
+            {
+                console.log("onSelectClientCertificate() selecting first cert");
+                selection.certificates[0].select();
+            }
+            else
+            {
+                // don't expect we'll ever hit this path - callback won't be called if there are no certs
+                console.log("onSelectClientCertificate() no certs to select");
+            }
+
+            console.log("onSelectClientCertificate() EXIT");
+        }
     }
 }

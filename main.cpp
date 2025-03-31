@@ -52,6 +52,59 @@
 #include <QQmlApplicationEngine>
 #include <qtwebengineglobal.h>
 
+#include <QQuickWebEngineProfile>
+#include <QQmlContext>
+#include <QWebEngineClientCertificateStore>
+#include <QFile>
+#include <iostream>
+
+using std::cout;
+using std::endl;
+
+QQuickWebEngineProfile* createNewProfile()
+{
+    QQuickWebEngineProfile *profile = new QQuickWebEngineProfile();
+
+    auto certs = profile->clientCertificateStore()->certificates();
+    cout << "createNewProfile() # of certs in new profile: " << certs.length() << endl;
+
+    // Load cert from file on disk into the client cert store
+    QSslKey         key;
+    QSslCertificate certificate;
+    QString         p12Path = "./cert.p12"; // adjust path if needed - this works if running binary from same dir as cert.p12
+    QFile           file(p12Path);
+    if (!file.open(QFile::ReadOnly))
+    {
+        cout << "createNewProfile() opening cert file FAILED: " << p12Path.toStdString() << endl;
+    }
+    else
+    {
+        if (!QSslCertificate::importPkcs12(&file, &key, &certificate, nullptr, "test"))
+        {
+            cout << "createNewProfile() importing user cert file FAILED: " << p12Path.toStdString() << endl;
+        }
+        else
+        {
+            profile->clientCertificateStore()->add(certificate, key);
+            cout << "createNewProfile() successfully imported user cert!" << endl;
+        }
+    }
+
+    // Log state after importing cert, to verify the import was successful
+    certs = profile->clientCertificateStore()->certificates();
+    cout << "createNewProfile() # of certs after import: " << certs.length() << endl;
+    for (const auto& cert : qAsConst(certs))
+    {
+        cout << "createNewProfile() imported cert:" << endl;
+        cout << cert.toText().toStdString() << endl;
+    }
+
+    // Set profile name so we can verify in qml we've got the right one
+    profile->setObjectName("TestProfile");
+
+    return profile;
+}
+
 int main(int argc, char *argv[])
 {
     QCoreApplication::setOrganizationName("QtExamples");
@@ -61,6 +114,10 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
 
     QQmlApplicationEngine engine;
+
+    // Add profile to root context before loading main.qml, for easy reference from there
+    engine.rootContext()->setContextProperty("myProfile", createNewProfile());
+
     engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
 
     return app.exec();
