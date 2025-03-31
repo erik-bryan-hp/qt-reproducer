@@ -1,0 +1,14 @@
+Process for generating test cert/key:
+------------------------------------
+
+openssl genrsa -out key.pem 4096
+
+openssl req -new -sha256 -key key.pem -out csr.csr
+# answered "." (leaves field blank) for all fields except:
+# CN=Test Cert
+# For "extra" attributes, hit enter to leave password & company name blank
+
+openssl req -x509 -sha256 -days 365 -key key.pem -in csr.csr -out cert.pem
+
+openssl pkcs12 -export -out cert.p12 -inkey key.pem -in cert.pem
+# used export password "test"
