@@ -1,10 +1,11 @@
 Process for generating test cert/key:
-------------------------------------
+-------------------------------------
+# NOT REQUIRED as I've included these files; just illustrating how they were created
 
 openssl genrsa -out key.pem 4096
 
 openssl req -new -sha256 -key key.pem -out csr.csr
-# answered "." (leaves field blank) for all fields except:
+# answered "." (leaves the field empty) for all fields except:
 # CN=Test Cert
 # For "extra" attributes, hit enter to leave password & company name blank
 
@@ -12,3 +13,35 @@ openssl req -x509 -sha256 -days 365 -key key.pem -in csr.csr -out cert.pem
 
 openssl pkcs12 -export -out cert.p12 -inkey key.pem -in cert.pem
 # used export password "test"
+
+
+
+Load test cert/key into new NSSDB:
+------------------------------------
+# NOT REQUIRED as I've included these files; just illustrating how they were created
+
+# create nssdb and load our test cert/key into it
+export NSSDB=./.pki/nssdb
+mkdir -p "$NSSDB"
+certutil -d "sql:$NSSDB" -N --empty-password
+pk12util -d "sql:$NSSDB" -i ./cert.p12 -W test
+
+# confirm cert/key loaded into nssdb - should print "u,u,u" to show the key is accessible
+certutil -d "sql:$NSSDB" -L -h all
+
+
+
+To test using the cert in NSSDB:
+------------------------------------
+# (argument should be the directory where the .pki folder is)
+./build*/minimal "$(pwd)"
+
+# Result: client cert from NSSDB is used, onSelectClientCertificate is called, and mTLS succeeds
+
+
+
+To test using an in-memory cert:
+------------------------------------
+./build*/minimal
+
+# Result: cert is added to profile used by WebEngineView, but onSelectClientCertificate is never called, and mTLS fails

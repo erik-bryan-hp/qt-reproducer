@@ -59,17 +59,28 @@ Window {
     WebEngineView {
         anchors.fill: parent
 
-        // Use the profile set up in C++
-        profile: myProfile;
+        // Use the profile set up in C++, if available, and log which path we take
+        function getProfile() {
+            if (typeof(myProfile) === "undefined") {
+                console.log("WebEngineView: Not using profile, should use NSSDB");
+                return null;
+            } else {
+                console.log("WebEngineView: Using profile, should use in-memory cert store");
+                return myProfile;
+            }
+        }
+        profile: getProfile()
 
-        // Found this website here: https://stackoverflow.com/questions/56798331/are-there-any-public-web-services-that-will-check-for-an-mtls-cert-and-response
+        // Found this website to exercise mTLS here:
+        // https://stackoverflow.com/questions/56798331/are-there-any-public-web-services-that-will-check-for-an-mtls-cert-and-response
         url: "https://certauth.cryptomix.com/json/"
 
-        // Log loading status - helps to verify we can see console output, so lack of onSelectClientCertificate
+        // Log loading status - helps to verify we can see console logging, so lack of onSelectClientCertificate
         // logging indicates that method is never called.
         onLoadingChanged: function(loadRequest) {
             let url = loadRequest.url;
 
+            // Translate load status enum to string for logging
             var status = "UNKNOWN";
             switch (loadRequest.status) {
             case WebEngineView.LoadStartedStatus:
@@ -87,15 +98,15 @@ Window {
             }
 
             // Log profile name to verify we're using the expected profile
-            let profileName = profile.objectName;
-            console.log("onLoadingChanged() w/" + profileName + " Loading " + status + ": " + url);
+            let profileName = (profile && profile.objectName) ? profile.objectName : "null profile";
+            console.log("onLoadingChanged(" + profileName + ") Loading " + status + ": " + url);
         }
 
         onSelectClientCertificate: function(selection) {
             console.log("onSelectClientCertificate() ENTER");
 
-            // log all certs we could choose
-            console.log("onSelectClientCertificate() available certs: " + selection.certificates.length);
+            // log all certs we could choose from
+            console.log("onSelectClientCertificate() # of available certs: " + selection.certificates.length);
             for (var i = 0; i < selection.certificates.length; i++)
             {
                 var prefix = "onSelectClientCertificate() certs[" + i + "]";
@@ -105,7 +116,7 @@ Window {
                 console.log(prefix + ".isSelfSigned: " + cert.isSelfSigned);
             }
 
-            // pick the first one, if possible
+            // pick the first one, if any
             if (selection.certificates.length > 0)
             {
                 console.log("onSelectClientCertificate() selecting first cert");

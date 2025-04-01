@@ -115,8 +115,20 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
 
-    // Add profile to root context before loading main.qml, for easy reference from there
-    engine.rootContext()->setContextProperty("myProfile", createNewProfile());
+    // if given any args, assume it's a new HOME path where the .pki folder should be
+    if (argc > 1)
+    {
+        // Don't use the profile - instead, set the HOME environment variable so we'll use the local nssdb
+        // Arg should be the new HOME path, e.g., run as: ./build*/minimal "$(pwd)"
+        qputenv("HOME", argv[1]);
+        cout << "main() set HOME for nssdb: " << argv[1] << endl;
+    }
+    else
+    {
+        // Add profile to root context before loading main.qml, so it gets picked up by the WebEngineView
+        engine.rootContext()->setContextProperty("myProfile", createNewProfile());
+        cout << "main() created profile" << endl;
+    }
 
     engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
 
