@@ -34,7 +34,7 @@ certutil -d "sql:$NSSDB" -L -h all
 To test using the cert in the system store (NSSDB or Windows personal cert store):
 ----------------------------------------------------------------------------------
 # Linux: provide path to the directory containing the .pki folder however is most convenient
-./minimal system ./
+./minimal system /path/to/dir
 
 # Windows: path isn't used - just give it any string to satisfy the check on number of args
 #
