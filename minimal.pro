@@ -7,6 +7,9 @@ QT += webengine
 # See: https://bugreports.qt.io/browse/QTBUG-80964
 CONFIG += use_gold_linker
 
+# Needed to add this to get console output in Windows
+CONFIG += console
+
 SOURCES += main.cpp
 
 RESOURCES += qml.qrc

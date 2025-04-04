@@ -115,8 +115,11 @@ int main(int argc, char *argv[])
     QQmlApplicationEngine engine;
 
     /*
-     * Arg 1: mode of operation, "cert" or "nssdb"
-     * Arg 2: relevant path; for cert, path to .p12 file to be imported; for nssdb, the new HOME path - it should contain the .pki folder
+     * Arg 1: mode of operation, "profile" or "system"
+     * Arg 2: relevant path
+     *      for cert mode, path to .p12 file to be imported
+     *      for system mode on Linux, the new HOME path - it should contain the .pki folder
+     *      for system mode on Windows, this argument isn't used - just provide any string to satisfy the argc check
      */
     if (argc != 3)
     {
@@ -127,17 +130,21 @@ int main(int argc, char *argv[])
     std::string mode = argv[1];
     std::string path = argv[2];
 
-    if (mode == "cert")
+    if (mode == "profile")
     {
         // Add profile to root context before loading main.qml, so it gets picked up by the WebEngineView
         engine.rootContext()->setContextProperty("myProfile", createNewProfile(path));
         cout << "main() created profile" << endl;
     }
-    else if (mode == "nssdb")
+    else if (mode == "system")
     {
-        // Don't use the profile - instead, set the HOME environment variable so we'll use the local nssdb
-        qputenv("HOME", path.c_str());
-        cout << "main() set HOME for nssdb: " << path << endl;
+#ifdef WIN32
+    cout << "main() 'system' mode in Windows - nothing to do, since system store is included by default" << endl;
+#else
+    // Don't use the profile - instead, set the HOME environment variable so we'll use the local nssdb
+    qputenv("HOME", path.c_str());
+    cout << "main() 'system' mode on Linux - set HOME for nssdb: " << path << endl;
+#endif
     }
     else
     {

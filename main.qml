@@ -106,26 +106,29 @@ Window {
             console.log("onSelectClientCertificate() ENTER");
 
             // log all certs we could choose from
-            console.log("onSelectClientCertificate() # of available certs: " + selection.certificates.length);
+            var selectedCertIndex = -1;
+            console.log("onSelectClientCertificate() # of available certs: " + selection.certificates.length + "\n");
             for (var i = 0; i < selection.certificates.length; i++)
             {
                 var prefix = "onSelectClientCertificate() certs[" + i + "]";
                 var cert = selection.certificates[i];
                 console.log(prefix + ".issuer: " + cert.issuer);
                 console.log(prefix + ".subject: " + cert.subject);
-                console.log(prefix + ".isSelfSigned: " + cert.isSelfSigned);
+                console.log(prefix + ".isSelfSigned: " + cert.isSelfSigned + "\n");
+
+                // Select the test cert if it's among the available options
+                if (cert.subject === "Test Cert")
+                {
+                    selectedCertIndex = i;
+                    console.log("onSelectClientCertificate() selecting test cert at index " + selectedCertIndex + "\n");
+                    cert.select();
+                }
             }
 
-            // pick the first one, if any
-            if (selection.certificates.length > 0)
+            if (selectedCertIndex === -1)
             {
-                console.log("onSelectClientCertificate() selecting first cert");
-                selection.certificates[0].select();
-            }
-            else
-            {
-                // don't expect we'll ever hit this path - callback won't be called if there are no certs
-                console.log("onSelectClientCertificate() no certs to select");
+                console.log("onSelectClientCertificate() desired test cert not found! no certs selected");
+                selection.selectNone();
             }
 
             console.log("onSelectClientCertificate() EXIT");

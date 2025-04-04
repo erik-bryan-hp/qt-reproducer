@@ -1,5 +1,5 @@
 Process for generating test cert/key:
--------------------------------------
+----------------------------------------------------------------------------------
 # NOT REQUIRED as I've included these files; just illustrating how they were created
 
 openssl genrsa -out key.pem 4096
@@ -17,7 +17,7 @@ openssl pkcs12 -export -out cert.p12 -inkey key.pem -in cert.pem
 
 
 Load test cert/key into new NSSDB:
-------------------------------------
+----------------------------------------------------------------------------------
 # NOT REQUIRED as I've included these files; just illustrating how they were created
 
 # create nssdb and load our test cert/key into it
@@ -31,18 +31,42 @@ certutil -d "sql:$NSSDB" -L -h all
 
 
 
-To test using the cert in NSSDB:
-------------------------------------
-# (provide path to the directory containing the .pki folder however is most convenient)
-./build*/minimal nssdb ./
+To test using the cert in the system store (NSSDB or Windows personal cert store):
+----------------------------------------------------------------------------------
+# Linux: provide path to the directory containing the .pki folder however is most convenient
+./minimal system ./
+
+# Windows: path isn't used - just give it any string to satisfy the check on number of args
+#
+# HOWEVER, you will first need to install cert.p12 to the current user's personal cert store.
+# Steps to do this:
+# - double click on cert.p12
+# - choose Store Location: Current User
+# - input password "test" when prompted
+# - let it automatically choose the store
+# - finish the wizard
+#
+# Confirm successful import by running certmgr.msc and looking under Personal/Certificates
+minimal.exe system foo
 
 # Result: client cert from NSSDB is used, onSelectClientCertificate is called, and mTLS succeeds
 
 
 
-To test using an in-memory cert:
-------------------------------------
-# (provide path to cert.p12 in whatever way is most convenient)
-./build*/minimal cert ./cert.p12
+To test using the cert from the profile's in-memory cert store:
+----------------------------------------------------------------------------------
+# Linux: provide path to cert.p12 in whatever way is most convenient
+./minimal profile /path/to/cert.p12
+
+# Windows: provide path to cert.p12 in whatever way is most convenient
+#
+# HOWEVER, note that if you have previously added the test cert to your system cert store,
+# you MUST remove it from the store first to properly exercise this path! I couldn't find
+# any way to tell Qt/Chromium to ignore the system cert store, so it will always include the
+# cert from the system store if you take this path, which defeats the purpose of the test.
+# To remove the cert:
+# - run certmgr.msc
+# - delete "Test Cert" under Personal/Certificates
+minimal.exe profile C:\path\to\cert.p12
 
 # Result: cert is added to profile used by WebEngineView, but onSelectClientCertificate is never called, and mTLS fails
