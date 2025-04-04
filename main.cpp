@@ -61,7 +61,7 @@
 using std::cout;
 using std::endl;
 
-QQuickWebEngineProfile* createNewProfile()
+QQuickWebEngineProfile* createNewProfile(std::string p12Path)
 {
     QQuickWebEngineProfile *profile = new QQuickWebEngineProfile();
 
@@ -71,17 +71,16 @@ QQuickWebEngineProfile* createNewProfile()
     // Load cert from file on disk into the client cert store
     QSslKey         key;
     QSslCertificate certificate;
-    QString         p12Path = "./cert.p12"; // adjust path if needed - this works if running binary from same dir as cert.p12
-    QFile           file(p12Path);
+    QFile           file(QString::fromStdString(p12Path));
     if (!file.open(QFile::ReadOnly))
     {
-        cout << "createNewProfile() opening cert file FAILED: " << p12Path.toStdString() << endl;
+        cout << "createNewProfile() opening cert file FAILED: " << p12Path << endl;
     }
     else
     {
         if (!QSslCertificate::importPkcs12(&file, &key, &certificate, nullptr, "test"))
         {
-            cout << "createNewProfile() importing user cert file FAILED: " << p12Path.toStdString() << endl;
+            cout << "createNewProfile() importing user cert file FAILED: " << p12Path << endl;
         }
         else
         {
@@ -115,22 +114,37 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
 
-    // if given any args, assume it's a new HOME path where the .pki folder should be
-    if (argc > 1)
+    /*
+     * Arg 1: mode of operation, "cert" or "nssdb"
+     * Arg 2: relevant path; for cert, path to .p12 file to be imported; for nssdb, the new HOME path - it should contain the .pki folder
+     */
+    if (argc != 3)
+    {
+        cout << "ERROR, two args required: mode & path" << endl;
+        return 1;
+    }
+
+    std::string mode = argv[1];
+    std::string path = argv[2];
+
+    if (mode == "cert")
+    {
+        // Add profile to root context before loading main.qml, so it gets picked up by the WebEngineView
+        engine.rootContext()->setContextProperty("myProfile", createNewProfile(path));
+        cout << "main() created profile" << endl;
+    }
+    else if (mode == "nssdb")
     {
         // Don't use the profile - instead, set the HOME environment variable so we'll use the local nssdb
-        // Arg should be the new HOME path, e.g., run as: ./build*/minimal "$(pwd)"
-        qputenv("HOME", argv[1]);
-        cout << "main() set HOME for nssdb: " << argv[1] << endl;
+        qputenv("HOME", path.c_str());
+        cout << "main() set HOME for nssdb: " << path << endl;
     }
     else
     {
-        // Add profile to root context before loading main.qml, so it gets picked up by the WebEngineView
-        engine.rootContext()->setContextProperty("myProfile", createNewProfile());
-        cout << "main() created profile" << endl;
+        cout << "ERROR, unexpected mode argument '" << mode << "'" << endl;
+        return 1;
     }
 
     engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
-
     return app.exec();
 }

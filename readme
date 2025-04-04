@@ -33,8 +33,8 @@ certutil -d "sql:$NSSDB" -L -h all
 
 To test using the cert in NSSDB:
 ------------------------------------
-# (argument should be the directory where the .pki folder is)
-./build*/minimal "$(pwd)"
+# (provide path to the directory containing the .pki folder however is most convenient)
+./build*/minimal nssdb ./
 
 # Result: client cert from NSSDB is used, onSelectClientCertificate is called, and mTLS succeeds
 
@@ -42,6 +42,7 @@ To test using the cert in NSSDB:
 
 To test using an in-memory cert:
 ------------------------------------
-./build*/minimal
+# (provide path to cert.p12 in whatever way is most convenient)
+./build*/minimal cert ./cert.p12
 
 # Result: cert is added to profile used by WebEngineView, but onSelectClientCertificate is never called, and mTLS fails
